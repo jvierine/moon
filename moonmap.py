@@ -97,7 +97,7 @@ class moon_mapper:
                 self.E[ip,:]=zd
 
 
-            if True:
+            if False:
                 
                 plt.plot(self.T[:,88].real)
                 plt.plot(self.T[:,88].imag)
