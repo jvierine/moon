@@ -4,6 +4,7 @@ import scipy.io as sio
 import matplotlib.pyplot as plt
 import scipy.constants as c
 import os
+import stuffr
 
 if __name__ == "__main__":
 
@@ -23,6 +24,7 @@ if __name__ == "__main__":
     nback=10
     for i in range(nback):
         fname=fl[len(fl)-nback-1+i]
+        print(fname)
         d=sio.loadmat(fname)
         z=n.array(d["d_raw"][:,0],dtype=n.complex64)
 
@@ -32,11 +34,17 @@ if __name__ == "__main__":
         for k in range(n_ipp):
             print(k)
             zipp[60:(60+31930)]=z[ (k*31930) : (k*31930 + 31930) ]
+            #            plt.plot(n.fft.fftshift(n.abs(n.fft.fft(zipp))**2.0))
+            #           plt.show()
+            lpf=stuffr.decimate(zipp,dec=500)
+#            plt.plot(lpf.real)
+ #           plt.plot(lpf.imag)
+  #          plt.show()
 #            csin=n.exp(-1j*2.0*n.pi*400e3*idx/1e6)*n.exp(-1j*pha0)
             # angle 
  #           pha0=n.angle(csin[len(csin)-1])
             zd=zipp#*csin[0:len(zipp)]
-            zmed.append(n.median(zd))
+            zmed.append(n.median(lpf))
         zmed=n.array(zmed)
         plt.title(fname)
         plt.plot(zmed.real)
