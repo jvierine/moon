@@ -21,7 +21,7 @@ if __name__ == "__main__":
     zipp=n.zeros(32000,dtype=n.complex64)
     pha0=0.0
     # look at last 10 files
-    nback=10
+    nback=30
     for i in range(nback):
         fname=fl[len(fl)-nback-1+i]
         print(fname)
@@ -36,7 +36,7 @@ if __name__ == "__main__":
             zipp[60:(60+31930)]=z[ (k*31930) : (k*31930 + 31930) ]
             #            plt.plot(n.fft.fftshift(n.abs(n.fft.fft(zipp))**2.0))
             #           plt.show()
-            lpf=stuffr.decimate(zipp,dec=500)
+            lpf=stuffr.decimate(zipp,dec=1000)
 #            plt.plot(lpf.real)
  #           plt.plot(lpf.imag)
   #          plt.show()
