@@ -6,18 +6,22 @@ import horizons as hor
 import stuffr
 import scipy.constants as c
 import digital_rf as drf
+import imageio
 
 class moon_mapper:
     def __init__(self,
                  eph,
                  dirname="/data0/eiscat/",
                  ch="moon_2022_02_13",
+                 tx_ch="moon_2022_02_13",
                  pad=3000,
                  L=31930,
                  ipp=32000,
+                 f_radar=440.2e6,
                  bitlen=2,
                  txlen=1800,
-                 N_ipp=200,
+                 delta_idx=0,
+                 N_ipp=1000,
                  dec=10):
         
         d=drf.DigitalRFReader(dirname)
@@ -25,6 +29,7 @@ class moon_mapper:
         self.b=b
         self.d=d
         self.ch=ch
+        self.tx_ch=tx_ch
         self.eph=eph
         self.bitlen=bitlen
         self.L=L
@@ -33,13 +38,14 @@ class moon_mapper:
         self.txlen=txlen
         self.dec=dec
         self.sr=1000000.0
+        self.delta_idx=delta_idx
+        self.f_radar=f_radar
         self.n_rg = int(1e6*2.0*self.eph.Rmoon/c.c + 2*pad)
         self.E = n.zeros([N_ipp,self.n_rg],dtype=n.complex64)
         self.T = n.zeros([N_ipp,self.n_rg],dtype=n.complex64)        
         self.S = n.zeros([N_ipp,self.n_rg],dtype=n.float32)
         self.nrd=int(self.n_rg/dec)
         self.SD = n.zeros([N_ipp,self.nrd],dtype=n.float32)
-
 
         self.N_ipp=N_ipp
         self.N_maps = int(n.floor( (self.b[1]-self.b[0])/(ipp*N_ipp)) )
@@ -60,7 +66,7 @@ class moon_mapper:
             img_t0=(self.b[0]+mi*self.N_ipp*self.ipp)/self.sr
 
             for ip in range(self.N_ipp):
-                i0 = self.b[0] + ipp_idx*self.ipp
+                i0 = self.b[0] + ipp_idx*self.ipp + self.delta_idx
                 ipp_idx+=1                
                 t0=i0/self.sr
 
@@ -68,13 +74,16 @@ class moon_mapper:
                 rtt_s = 2.0*rnow/c.c
                 rttnow = int(self.sr*rtt_s)
                 
-                ztx[:]=self.d.read_vector_c81d(i0,self.n_rg,self.ch)
+                ztx[:]=self.d.read_vector_c81d(i0,self.n_rg,self.tx_ch)
+#                plt.plot(ztx.real)
+ #               plt.plot(ztx.imag)
+  #              plt.show()
                 ztx[self.txlen:self.n_rg]=0.0
 
                 print(t0 + rtt_s/2.0)
                 
                 rr=1e3*self.eph.rrfun(t0 + rtt_s/2.0)
-                dopfreq=2.0*929.6e6*rr/c.c
+                dopfreq=2.0*self.f_radar*rr/c.c
 
                 print("rtt %d dop %1.2f"%(rttnow,rr))
                 csin=n.exp(-1j*2.0*n.pi*dopfreq*tv)*n.exp(1j*ph0)
@@ -91,6 +100,9 @@ class moon_mapper:
 #                z_tx2 = csin[0:len(ztx)]                
 
                 z_echo=self.d.read_vector_c81d(i0+rttnow-self.pad,self.n_rg,self.ch)
+#                plt.plot(z_echo.real)
+ #               plt.plot(z_echo.imag)
+  #              plt.show()
 
                 zd=n.fft.ifft(n.fft.fft(z_echo)*n.conj(n.fft.fft(z_tx2)))
                 
@@ -143,15 +155,13 @@ class moon_mapper:
             plt.clf()
             plt.close()
 
+            dB[dB>50]=50.0
+            dB[dB<0]=0
+            dB=dB/50.0
+            imageio.imwrite("plots/bm-%d.png"%(int(img_t0)),dB)
+            
                 
         
-
-
-
-
-
-
-
 
 if __name__ == "__main__":
     if False:
@@ -163,7 +173,7 @@ if __name__ == "__main__":
         m=moon_mapper(heph)
         m.map_files()
 
-    if True:
+    if False:
         # 2022_02_14
         heph=hor.horizons_moon(fname="horizons_2022_02_13.txt")
         m=moon_mapper(heph,
@@ -172,5 +182,15 @@ if __name__ == "__main__":
                       ipp=33500,
                       L=33430)
         m.map_files()
-
-
+    if True:
+        heph=hor.horizons_moon(fname="horizons_2022_03_03_haystack.txt")
+        m=moon_mapper(heph,
+                      dirname="/scratch/data/midasop/2022-03-03/usrp-rx0-r_20220303T144700_20220303T165500/rf_data/",
+                      ch="misa-l",
+                      tx_ch="tx-h",
+                      delta_idx=26895,
+                      f_radar=440.2e6,
+                      ipp=40000)
+        m.map_files()
+                      
+                               
